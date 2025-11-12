@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TextField, Button, Card, CardContent, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom'; // ✅ 추가
 
 function SongUpload() {
   const [form, setForm] = useState({
@@ -9,6 +10,7 @@ function SongUpload() {
     description: ""
   });
   const [audioFile, setAudioFile] = useState(null);
+  const navigate = useNavigate(); // ✅ 추가
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
   const handleFileChange = e => setAudioFile(e.target.files[0]);
@@ -16,22 +18,31 @@ function SongUpload() {
   const handleSubmit = async e => {
     e.preventDefault();
     let audioUrl = '';
-    if (audioFile) {
-      const fd = new FormData();
-      fd.append('audio', audioFile);
-      const res = await fetch('http://localhost:5000/api/upload/audio', {
+    try {
+      if (audioFile) {
+        const fd = new FormData();
+        fd.append('audio', audioFile);
+        const res = await fetch('http://localhost:5000/api/upload/audio', {
+          method: 'POST',
+          body: fd
+        });
+        const data = await res.json();
+        audioUrl = data.url;
+      }
+
+      await fetch('http://localhost:5000/api/songs', {
         method: 'POST',
-        body: fd
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, audioUrl })
       });
-      const data = await res.json();
-      audioUrl = data.url;
+
+      alert('등록 완료!');
+      navigate('/'); // ✅ 등록 후 메인 페이지로 이동
+
+    } catch (err) {
+      console.error(err);
+      alert('등록 중 오류가 발생했습니다.');
     }
-    await fetch('http://localhost:5000/api/songs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, audioUrl })
-    });
-    alert('등록 완료!');
   };
 
   return (
